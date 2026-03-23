@@ -7,32 +7,30 @@ CHANNEL_URL = "https://www.youtube.com/@elizabethleemethodist/streams"
 FEED_FILE = "content.json"
 
 def get_youtube_videos():
-    # Using the direct Channel ID is the most stable way for automation
-    # Elizabeth Lee Methodist Church ID: UC8D_H8v7M-UfG_N5C596p9A
-    CHANNEL_ID_URL = "https://www.youtube.com/channel/UC8D_H8v7M-UfG_N5C596p9A/videos"
+    # Fallback: Search the channel directly for the latest 5 videos
+    # This is often more successful at bypassing automated blocks
+    SEARCH_QUERY = "ytsearch5:from_channel:UC8D_H8v7M-UfG_N5C596p9A"
     
     cmd = [
         "yt-dlp",
         "--get-title", "--get-id", "--get-thumbnail", "--get-description",
-        "--playlist-items", "1-5",
-        "--flat-playlist",
         "--ignore-no-formats-error",
-        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "--print", '{"title": "%(title)s", "description": "%(description).100s...", "hdPosterUrl": "%(thumbnail)s", "url": "https://www.youtube.com/watch?v=%(id)s", "id": "%(id)s"}',
-        CHANNEL_ID_URL
+        SEARCH_QUERY
     ]
     
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout.strip()
         if not output:
-            print("No output from yt-dlp. Check the channel URL.")
+            print("Search returned no results.")
             return []
             
         videos = [json.loads(line) for line in output.split('\n') if line.strip()]
         return videos
     except Exception as e:
-        print(f"Error fetching videos: {e}")
+        print(f"Error during search: {e}")
         return []
 
 def update_roku_json():
