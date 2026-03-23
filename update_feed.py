@@ -7,13 +7,14 @@ CHANNEL_URL = "https://www.youtube.com/@elizabethleemethodist/streams"
 FEED_FILE = "content.json"
 
 def get_youtube_videos():
-    # Fetching metadata using yt-dlp
+   # We use the /live URL and a browser User-Agent to ensure we see the videos
     cmd = [
         "yt-dlp",
         "--get-title", "--get-id", "--get-thumbnail", "--get-description",
         "--playlist-items", "1-5",
+        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "--print", '{"title": "%(title)s", "description": "%(description).100s...", "hdPosterUrl": "%(thumbnail)s", "url": "https://www.youtube.com/watch?v=%(id)s", "id": "%(id)s"}',
-        CHANNEL_URL
+        "https://www.youtube.com/@elizabethleemethodist/live"
     ]
     
     try:
