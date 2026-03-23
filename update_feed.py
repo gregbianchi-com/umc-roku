@@ -1,62 +1,40 @@
 import json
-import subprocess
-import os
+import scrapetube
 
-# Your Church YouTube Stream URL
-CHANNEL_URL = "https://www.youtube.com/@elizabethleemethodist/streams"
+CHANNEL_ID = "UC8D_H8v7M-UfG_N5C596p9A"
 FEED_FILE = "content.json"
 
-def get_youtube_videos():
-    # We search specifically for the church's channel ID to get the latest 5 videos.
-    # This bypasses many of the blocks that hit the /live or /videos pages.
-    SEARCH_QUERY = "ytsearch5:from_channel:UC8D_H8v7M-UfG_N5C596p9A"
+def get_videos():
+    # This pulls the latest 5 videos from the 'Live' tab directly
+    videos = scrapetube.get_channel(CHANNEL_ID, content_type="streams", limit=5)
+    items = []
     
-    cmd = [
-        "yt-dlp",
-        "--get-title", "--get-id", "--get-thumbnail", "--get-description",
-        "--ignore-no-formats-error",
-        "--no-warnings",
-        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "--print", '{"title": "%(title)s", "description": "%(description).100s...", "hdPosterUrl": "%(thumbnail)s", "url": "https://www.youtube.com/watch?v=%(id)s", "id": "%(id)s"}',
-        SEARCH_QUERY
-    ]
-    
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout.strip()
-        
-        # Log the output to GitHub Actions so we can troubleshoot if it's empty
-        print(f"Debug Output: {output}")
-        
-        if not output:
-            return []
-            
-        videos = [json.loads(line) for line in output.split('\n') if line.strip()]
-        return videos
-    except Exception as e:
-        print(f"Error: {e}")
-        return []
+    for video in videos:
+        items.append({
+            "id": video['videoId'],
+            "title": video['title']['runs'][0]['text'],
+            "description": "Church Service",
+            "hdPosterUrl": f"https://i.ytimg.com/vi/{video['videoId']}/maxresdefault.jpg",
+            "url": f"https://www.youtube.com/watch?v={video['videoId']}",
+            "streamFormat": "hls",
+            "isLive": False
+        })
+    return items
 
-def update_roku_json():
-    videos = get_youtube_videos()
-    
-    # Adding Roku-specific fields
-    for v in videos:
-        v["streamFormat"] = "hls"
-        v["isLive"] = False # Defaulting to false as we discussed
-
+def update_json():
+    video_list = get_videos()
     new_feed = {
         "categories": [
             {
                 "title": "Recent Church Services",
-                "items": videos
+                "items": video_list
             }
         ]
     }
     
     with open(FEED_FILE, "w") as f:
         json.dump(new_feed, f, indent=4)
-    print(f"Successfully updated {FEED_FILE}")
+    print(f"Successfully updated with {len(video_list)} videos.")
 
 if __name__ == "__main__":
-    update_roku_json()
+    update_json()
